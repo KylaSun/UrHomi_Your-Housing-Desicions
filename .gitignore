@@ -1,0 +1,11 @@
+data/
+work/
+.env
+.env.*
+!.env.example
+__pycache__/
+*.py[cod]
+*.sqlite*
+*.db
+.DS_Store
+*.log

@@ -1,0 +1,44 @@
+{
+  "manifest_version": 3,
+  "name": "UrHomi 中文看房助手",
+  "version": "0.6.0",
+  "minimum_chrome_version": "116",
+  "description": "在 Rightmove 与 Zoopla 房源页直接打开中文看房助手，核实费用、准备咨询并记录联系。",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "sidePanel"
+  ],
+  "host_permissions": [
+    "http://127.0.0.1/*",
+    "https://www.rightmove.co.uk/*",
+    "https://rightmove.co.uk/*",
+    "https://www.zoopla.co.uk/*",
+    "https://zoopla.co.uk/*"
+  ],
+  "action": {
+    "default_title": "打开 UrHomi 看房助手"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "side_panel": {
+    "default_path": "panel.html"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.rightmove.co.uk/*",
+        "https://rightmove.co.uk/*",
+        "https://www.zoopla.co.uk/*",
+        "https://zoopla.co.uk/*"
+      ],
+      "js": [
+        "extract.js",
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}
