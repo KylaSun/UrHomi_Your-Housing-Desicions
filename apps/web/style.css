@@ -16,27 +16,41 @@
 
 .app,main,.home-card,.card-gallery{min-width:0}.gallery{max-width:100%}.gallery-track{width:100%;min-width:0}.gallery-slide{min-width:0}.gallery-controls{min-width:0}.gallery-controls span{min-width:0;overflow-wrap:anywhere}
 
-/* Balanced workspace */
+/* Shared workspace design tokens */
 :root {
-  --bg: #faf8f2;
-  --ink: #183b30;
-  --muted: #52685d;
-  --line: #dddeda;
+  --bg: #f9f7f2;
+  --paper: #fffefa;
+  --ink: #27263b;
+  --muted: #625e72;
+  --line: #e7e1eb;
   --green: #174c3c;
-  --soft: #e2eee5;
-  --mint: #ccebd5;
-  --cream: #f9edb9;
-  --rose: #f6dce4;
-  --lavender: #e8e0fa;
+  --soft: #eee9fa;
+  --mint: #e4f2e9;
+  --cream: #f8eedb;
+  --rose: #f6e7ed;
+  --lavender: #ebe4fa;
+  --font-ui: system-ui, -apple-system, "PingFang SC", sans-serif;
+  --text-small: .8125rem;
+  --text-body: .9375rem;
+  --text-section: clamp(1.125rem, 1.65vw, 1.5rem);
+  --text-page: clamp(1.875rem, 3.1vw, 2.875rem);
+  --space-card: clamp(18px, 2.6vw, 32px);
+  --radius-card: 24px;
+  --shadow-card: 0 4px 16px rgb(47 32 78 / 6%);
 }
-body { font-size: 15px; }
-.sidebar { background: #fffdf8; overflow-y: auto; }
+body { font: var(--text-body)/1.6 var(--font-ui); }
+h1, h2, h3 { line-height: 1.25; font-weight: 700; }
+h1, .page-title h1 { font-size: var(--text-page); letter-spacing: -.035em; }
+h2 { font-size: var(--text-section); letter-spacing: -.02em; }
+.page-title p { font-size: var(--text-body); }
+.brand { color: var(--green); }
+.sidebar { background: var(--paper); overflow-y: auto; }
 .brand-note { font-weight: 700; letter-spacing: .11em; margin: 9px 0 22px; }
 .sidebar nav a { min-height: 44px; color: var(--ink); border-radius: 16px; font-weight: 600; }
-.sidebar nav a[aria-current] { background: var(--green); color: white; }
+.sidebar nav a[aria-current] { background: var(--lavender); color: var(--ink); }
 .sidebar nav a:not([aria-current]):hover { background: var(--soft); }
 .sidebar-bottom { padding: 16px; border-radius: 20px; background: var(--soft); color: var(--muted); }
-header { background: var(--bg); gap: 12px; }
+header { background: var(--paper); gap: 12px; }
 header > div:first-child { min-width: 0; }
 #breadcrumb { font-size: 10px; font-weight: 700; letter-spacing: .12em; }
 #project { display: block; width: min(260px,100%); padding: 5px 10px; min-height: 38px; }
@@ -46,7 +60,17 @@ button:not(:disabled):hover { box-shadow: inset 0 0 0 100px #183b300d; }
 :where(a,button,input,select,textarea):focus-visible { outline: 3px solid #496e9b; outline-offset: 3px; }
 .eyebrow, .tag.gray, footer, .filters button { color: var(--muted); }
 .tag { border-radius: 999px; color: var(--green); }
-.card, .home-card, .panel, dialog, .empty, .banner { border-radius: 24px; min-width: 0; }
+.card, .home-card, .panel, dialog, .empty, .banner, .lens-strip, .match-card, .living-card, .plan-card, .editorial-card {
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  min-width: 0;
+}
+.card, .home-card, .panel, .empty { background: var(--paper); }
+.card, .panel { padding: var(--space-card); }
+.banner, .verdict, .gallery-empty { background: var(--soft); border-color: var(--line); }
+.banner p { color: var(--muted); }
+.filters .active { background: var(--lavender); color: var(--ink); }
+.card-price strong, .stat strong, .big-number { font-variant-numeric: tabular-nums; }
 .home-card { overflow-wrap: anywhere; }
 .gallery-track { border-radius: 18px; }
 .section-nav { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 22px; }
@@ -62,13 +86,13 @@ button:not(:disabled):hover { box-shadow: inset 0 0 0 100px #183b300d; }
   min-height: 245px;
   padding: clamp(24px,5vw,58px);
   border-radius: 34px;
-  background: var(--green);
-  color: #fffdf8;
+  background: var(--lavender);
+  color: var(--ink);
 }
-.plan-hero .eyebrow { color: var(--mint); }
-.plan-hero h1 { font-size: clamp(40px,6.2vw,86px); line-height: 1.03; letter-spacing: -.065em; margin: 15px 0; }
-.plan-hero h1 span { color: var(--cream); }
-.plan-hero p { color: #e5efe6; margin: 0; }
+.plan-hero .eyebrow { color: var(--muted); }
+.plan-hero h1 { font-size: var(--text-page); line-height: 1.1; letter-spacing: -.035em; margin: 15px 0; }
+.plan-hero h1 span { color: var(--green); }
+.plan-hero p { color: var(--muted); margin: 0; }
 .hero-mark { display: grid; grid-template-columns: repeat(2,1fr); gap: 6px; width: clamp(90px,13vw,174px); transform: rotate(-8deg); }
 .hero-mark i { aspect-ratio: 1; border-radius: 50% 50% 12% 50%; background: var(--mint); }
 .hero-mark i:nth-child(2) { background: var(--cream); transform: rotate(90deg); }
@@ -82,7 +106,7 @@ button:not(:disabled):hover { box-shadow: inset 0 0 0 100px #183b300d; }
 .lavender { background: var(--lavender); }
 .plan-card-top { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 20px; }
 .plan-icon { width: 48px; height: 48px; display: grid; place-items: center; flex-shrink: 0; background: #ffffffa8; border-radius: 17px; font-size: 25px; }
-.plan-card h2 { font-size: clamp(25px,3vw,38px); letter-spacing: -.045em; line-height: 1.12; margin-bottom: 10px; }
+.plan-card h2 { font-size: var(--text-section); letter-spacing: -.02em; line-height: 1.12; margin-bottom: 10px; }
 .plan-card p { color: #344e43; margin-bottom: 18px; }
 .pill-link { display: inline-flex; gap: 12px; align-items: center; min-height: 44px; margin-top: auto; padding: 8px 15px; border-radius: 999px; background: #fffdf8; font-size: 13px; font-weight: 700; }
 .pill-link:hover { background: var(--green); color: white; }
@@ -103,6 +127,16 @@ button:not(:disabled):hover { box-shadow: inset 0 0 0 100px #183b300d; }
 .profile-layout { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); align-items: start; gap: 18px; }
 .living-card, .community-stage, .editorial-card { padding: clamp(22px,3vw,36px); border-radius: 30px; overflow-wrap: anywhere; }
 .living-card { background: var(--lavender); }
+.living-card > p { color: var(--muted); }
+.living-section {
+  margin: 14px 0;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--paper);
+}
+.living-section :last-child { margin-bottom: 0; }
+.living-section h3 { font-size: var(--text-small); }
+.living-card .tag { background: var(--mint); }
 .living-card dl { display: grid; grid-template-columns: auto minmax(0,1fr); gap: 8px 14px; }
 .living-card dt { color: var(--muted); }
 .living-card dd { margin: 0; font-weight: 650; }
