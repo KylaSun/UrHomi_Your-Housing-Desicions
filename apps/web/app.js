@@ -20,7 +20,7 @@ function badge(text,color=''){return `<span class="tag ${color}">${esc(text)}</s
 function source(h){let host='';try{host=new URL(h.url).hostname}catch{}const rm=/(^|\.)rightmove\.co\.uk$/.test(host),zp=/(^|\.)zoopla\.co\.uk$/.test(host);return `<span class="source-icon ${zp?'zoopla':rm?'':'manual'}">${zp?'Z':rm?'RM':'↗'}</span><span>${rm?'Rightmove':zp?'Zoopla':esc(h.source||'手动导入')}</span>`}
 function verdict(h){const conflicts=h.assessment.fit.filter(r=>r.status==='conflict');return {title:conflicts.length?'有 '+conflicts.length+' 项条件冲突':'值得进一步核实',color:conflicts.length?'amber':'',text:conflicts.length?conflicts.map(r=>r.label).join('、'):h.assessment.next_step}}
 function progress(){const a=mine(),steps=[[!!(p().budget&&p().move_in),'填写我的需求','needs'],[a.length>0,'保存喜欢的房源','queue'],[a.some(h=>h.draft||h.contacted_at),'咨询并核实','queue'],[a.some(h=>h.decision_status==='chosen'),'比较并作出决定','compare']];return `<div class="steps">${steps.map((s,i)=>`<a class="step ${s[0]?'done':''}" href="#${s[2]}"><i>${s[0]?'✓':i+1}</i>${s[1]}</a>`).join('')}</div>`}
-const housingPages = {housing:'Housing Plan', queue:'Saved Homes', match:'Roommate Match', compare:'房源对比', channels:'找房渠道', neighborhood:'周边笔记'};
+const housingPages = {housing:'Housing Workspace', queue:'Saved Homes', match:'Roommate Match', compare:'房源对比', channels:'找房渠道', neighborhood:'周边笔记'};
 const profilePages = {profile:'Living Card', needs:'住房需求', ai:'咨询设置'};
 
 function sectionNav(pages, page) {
@@ -45,37 +45,59 @@ function render() {
   $('#compareBar').innerHTML=`<span>已选 ${ids.length} 套房源</span><button data-act="compare">开始对比 →</button><button class="text-button" data-act="clearCompare">清空</button>`;
   const views={housing:housingPlan,queue,match:roommateMatch,compare,home:()=>detail(id),community,profile,channels,neighborhood,needs,ai:aiSettings};
   const view=Object.prototype.hasOwnProperty.call(views,page)?views[page]:housingPlan;
-  const nav=area==='housing'?sectionNav(housingPages,page==='home'?'queue':page):area==='profile'?sectionNav(profilePages,page):'';
+  const nav=page==='housing'?'':area==='housing'?sectionNav(housingPages,page==='home'?'queue':page):area==='profile'?sectionNav(profilePages,page):'';
   const demo=current.is_demo?'<div class="demo-banner">流程演练项目 · 当前房源、预算和回复示例均为合成数据。</div>':'';
   $('#main').innerHTML=demo+nav+view();
   if ($('#compareCount') && ids.length) $('#compareCount').textContent=ids.length;
 }
 
-function planCard(tone, icon, label, title, description, href, action) {
-  return `<article class="plan-card ${tone}">
-    <div class="plan-card-top"><span class="plan-icon" aria-hidden="true">${icon}</span><span class="eyebrow">${label}</span></div>
-    <h2>${title}</h2><p>${description}</p>
-    <a class="pill-link" href="#${href}">${action} <span aria-hidden="true">↗</span></a>
-  </article>`;
-}
-
 function housingPlan() {
-  const all=mine(), shortlisted=all.filter(h=>h.decision_status==='shortlisted').length;
-  return `<section class="plan-hero">
-    <div><span class="eyebrow">01 / YOUR HOUSING WORKSPACE</span>
-    <h1>Housing Plan<span>.</span></h1>
-    <p>一起住的人，想住的地方。把两件事放在同一张计划里。</p></div>
-    <div class="hero-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
-  </section>
+  const all=mine(), compared=all.filter(h=>selected.has(h.id)).length;
+  const shortcuts=[
+    ['cream','♧','Saved Homes','queue',all.length],
+    ['rose','▥','Compare','compare',compared],
+    ['lavender','⌕','Explore Housing','channels',''],
+    ['sage','⌖','Neighborhood','neighborhood','']
+  ];
+  const topics=[
+    ['⌂','Campus','学校与住房问题','campus'],
+    ['◎','Roommates','室友需求与生活习惯','roommates'],
+    ['⌖','Nearby','通勤与周边生活','nearby']
+  ];
+  return `<div class="page-title workspace-title"><div><h1>Housing Workspace</h1><p>规划、寻找并整理你的下一个家。</p></div>
+    <form id="workspaceSearch" role="search"><label class="sr-only" for="workspaceQuery">搜索已保存房源</label><input type="search" id="workspaceQuery" name="query" placeholder="搜索已保存房源"><button aria-label="搜索已保存房源">⌕</button></form>
+  </div>
   <div class="plan-grid">
-    ${planCard('mint','◎','01 / PEOPLE','Roommate Match','用示例滑卡探索你在意的作息和共享空间习惯。','match','试用室友滑卡')}
-    ${planCard('cream','⌂','02 / HOMES','Saved Homes',`已收藏 ${all.length} 套房源，其中 ${shortlisted} 套重点候选。查看原始照片、价格和联系进度。`,'queue','查看已保存房源')}
+    <section class="plan-card mint"><div class="plan-card-top"><h2>My Housing Plan</h2><a class="plan-arrow" href="#needs" aria-label="编辑住房需求">→</a></div>
+      <p class="plan-facts"><a href="#needs">◉ ${esc(p().school||'设置住房需求')}</a><a href="#queue">⌂ ${all.length} 套已保存房源</a></p>
+      ${progress()}
+    </section>
+    <section class="plan-card yellow match-promo"><div><h2>Roommate Match</h2><p>用示例滑卡探索你在意的作息和共享空间习惯。</p><a class="pill-link" href="#match">Start Matching <span aria-hidden="true">→</span></a></div>
+      <div class="match-art" aria-hidden="true"><i>✦</i><i>♥</i></div>
+    </section>
+  </div>
+  <nav class="workspace-shortcuts" aria-label="住房快捷入口">${shortcuts.map(([tone,icon,label,href,count])=>`<a class="${tone}" href="#${href}"><span class="plan-icon" aria-hidden="true">${icon}</span><span>${label}<strong>${count}</strong></span><span aria-hidden="true">→</span></a>`).join('')}</nav>
+  <div class="workspace-feed">
+    <section><div class="feed-title"><h2>Saved Homes</h2><a href="#queue">查看全部 →</a></div>
+      ${all.length?`<div class="saved-preview">${all.slice(0,3).map(h=>`<article class="home-preview">${gallery(h,true)}<a href="#home/${encodeURIComponent(h.id)}"><strong>${money(h.price,h.currency)}</strong> <small>${h.period==='week'?'每周':h.period==='month'?'每月':''}</small><span>${esc(h.title)}</span><small>${esc(h.address||'地址待核实')}</small></a></article>`).join('')}</div>`:`<div class="panel"><p>用 Housing Lens 保存房源后，原平台照片和价格会显示在这里。</p><button data-act="import">＋ 添加房源</button></div>`}
+    </section>
+    <section><div class="feed-title"><h2>Community</h2><a href="#community">查看全部 →</a></div>
+      <div class="community-preview">${topics.map(([icon,label,description,key])=>`<a href="#community?tab=${key}"><span class="plan-icon" aria-hidden="true">${icon}</span><span><strong>${label}</strong><small>${description}</small></span><span aria-hidden="true">→</span></a>`).join('')}</div>
+    </section>
   </div>
   <section class="lens-strip"><div class="plan-icon" aria-hidden="true">✦</div>
     <div><h2>Housing Lens</h2><p>在 Rightmove 或 Zoopla 用 Chrome 插件一键读取并保存房源。</p></div>
     <button class="quiet" data-act="plugin">查看插件用法 ↗</button>
   </section>`;
 }
+
+document.addEventListener('submit',e=>{
+  if(e.target.id!=='workspaceSearch') return;
+  e.preventDefault();
+  search=String(new FormData(e.target).get('query')).trim();
+  filter='all';
+  go('queue');
+});
 
 const roommateExamples=[
   {name:'示例 A',initial:'A',tone:'rose',summary:'工作日早睡，喜欢有规律的共享空间。',tags:['早睡早起','轮流清洁','在家做饭']},
@@ -174,7 +196,7 @@ run(async()=>{try{await load()}catch(e){$('#main').innerHTML='<div class="empty"
 
 document.addEventListener('error',e=>{if(e.target.matches?.('.property-photo img,.gallery img'))e.target.remove()},true);
 
-function gallery(h){const raw=h.images?.length?h.images:[{url:h.image_url}];const urls=[...new Set(raw.map(x=>typeof x==='string'?x:x.url).filter(x=>{try{const u=new URL(x);return u.protocol==='https:'&&!u.username&&!u.password}catch{return false}}))];if(!urls.length)return `<div class="photo-placeholder gallery-empty">暂无原平台照片，请返回原网站查看</div>`;
+function gallery(h, preview=false){const raw=h.images?.length?h.images:[{url:h.image_url}];const urls=[...new Set(raw.map(x=>typeof x==='string'?x:x.url).filter(x=>{try{const u=new URL(x);return u.protocol==='https:'&&!u.username&&!u.password}catch{return false}}))];if(preview)return photo({...h,image_url:urls[0]});if(!urls.length)return `<div class="photo-placeholder gallery-empty">暂无原平台照片，请返回原网站查看</div>`;
 return `<section class="gallery" aria-label="房源照片"><div class="gallery-track" tabindex="0" aria-label="左右滑动浏览照片">${urls.map((url,i)=>`<figure class="gallery-slide"><span class="photo-placeholder">照片加载失败，请到原网站查看</span><img src="${esc(url)}" alt="${esc(h.title)} · 照片 ${i+1}" ${i?'loading="lazy"':''} referrerpolicy="no-referrer"><figcaption>${i+1} / ${urls.length} · ${esc(h.source||'原平台')} · 图片版权归原权利人</figcaption></figure>`).join('')}</div><div class="gallery-controls"><button type="button" data-gallery="-1" ${urls.length<2?'hidden':''} aria-label="上一张照片">← 上一张</button><span>${urls.length>1?'左右滑动或点击切换 · '+urls.length+' 张照片':'仅保存了封面。请在原网站打开 Photos 相册后，用更新后的 Housing Lens 重新读取以补齐。'}</span><button type="button" data-gallery="1" ${urls.length<2?'hidden':''} aria-label="下一张照片">下一张 →</button></div></section>`}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-gallery]');if(!b)return;const track=b.closest('.gallery').querySelector('.gallery-track');const total=track.children.length;const current=Math.round(track.scrollLeft/track.clientWidth);const next=(current+Number(b.dataset.gallery)+total)%total;track.scrollTo({left:next*track.clientWidth,behavior:'smooth'})});
 document.addEventListener('keydown',e=>{if(!e.target.matches('.gallery-track')||!['ArrowLeft','ArrowRight'].includes(e.key))return;e.preventDefault();const track=e.target;track.scrollBy({left:track.clientWidth*(e.key==='ArrowRight'?1:-1),behavior:'smooth'})});
