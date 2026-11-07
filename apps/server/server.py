@@ -248,6 +248,20 @@ class Handler(BaseHTTPRequestHandler):
       h.update(id=secrets.token_hex(8),project_id=demo['id'],decision_status='considering',action_status='not_contacted',created_at=now(),updated_at=now(),draft='',contacted_at=None,last_response_at=None,follow_up_at=None,history=[])
       c.execute('INSERT INTO homes VALUES (?,?,?,?)',(h['id'],demo['id'],h['url'],json.dumps(h)))
     return self.send(201,{'project_id':demo['id'],'existing':False})
+   if self.path=='/api/workspace':
+    pid=str(d.get('project_id',''))
+    if pid not in [p['id'] for p in s['projects']]:raise ValueError('请选择有效项目')
+    allowed={'area':100,'area_notes':4000,'display_name':80,'bio':1000,'lifestyle':1000,'campus_draft':4000,'roommates_draft':4000,'nearby_draft':4000}
+    incoming=d.get('fields',{})
+    if not isinstance(incoming,dict) or any(k not in allowed for k in incoming):raise ValueError('资料字段无效')
+    with connect() as c:
+     current=json.loads(c.execute('SELECT data FROM settings WHERE id=1').fetchone()[0])
+     entry=current.setdefault('workspace',{}).setdefault(pid,{})
+     for key,value in incoming.items():
+      if not isinstance(value,str) or len(value)>allowed[key]:raise ValueError('内容过长或格式无效')
+      entry[key]=value.strip()
+     c.execute('UPDATE settings SET data=? WHERE id=1',(json.dumps(current),))
+    return self.send(200,entry)
    if self.path=='/api/projects':
     p={'id':d.get('id') or secrets.token_hex(8),'name':str(d.get('name','')).strip()[:100],'school':str(d.get('school',''))[:200],'budget':None if d.get('budget') in ('',None) else float(d['budget']),'currency':d.get('currency','GBP'),'period':d.get('period','week'),'room_type':str(d.get('room_type',''))[:80],'move_in':str(d.get('move_in',''))}
     if not p['name'] or p['currency'] not in ('GBP','USD','EUR','CNY') or p['period'] not in ('week','month') or (p['budget'] is not None and not 0<p['budget']<10000000):raise ValueError('项目名称、预算或计价单位无效')

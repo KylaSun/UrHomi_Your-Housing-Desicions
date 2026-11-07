@@ -33,7 +33,7 @@ async function capture(expectedTabId){
  await persist();
  const previous=homes.find(h=>urhomiPageContext(h.url).url===d.url&&h.project_id===project)||local.records?.[project+'|'+d.url];
  home=restoreDraft(previous||{...d,draft:'',questions:Object.keys(Q).filter(k=>!d[k]).slice(0,3),action_status:'not_contacted'});
- if(previous){home={...home,images:d.images?.length?d.images:home.images,image_url:d.image_url||home.image_url,image_source:d.image_url?d.image_source:home.image_source,image_page_url:d.image_page_url,extracted_at:d.extracted_at,address:home.address||d.address,bedrooms:home.bedrooms??d.bedrooms,adapter:d.adapter,extraction_warnings:d.extraction_warnings};if(d.price&&home.price&&Number(d.price)!==Number(home.price))home.extraction_warnings=[...home.extraction_warnings,'网页价格与已保存价格不同。保留原值，请手动核实后修改。'];}
+ if(previous){home={...home,images:mergeCapturedImages(d.images,home.images,home.image_url),image_url:d.image_url||home.image_url,image_source:d.image_url?d.image_source:home.image_source,image_page_url:d.image_page_url,extracted_at:d.extracted_at,address:home.address||d.address,bedrooms:home.bedrooms??d.bedrooms,adapter:d.adapter,extraction_warnings:d.extraction_warnings};if(d.price&&home.price&&Number(d.price)!==Number(home.price))home.extraction_warnings=[...home.extraction_warnings,'网页价格与已保存价格不同。保留原值，请手动核实后修改。'];}
  if(home.id)await api('homes/'+home.id,{event:'refresh_media',images:home.images,image_url:home.image_url,image_source:home.image_source,image_page_url:home.image_page_url,extracted_at:home.extracted_at,address:home.address,bedrooms:home.bedrooms});
  saveError='';page='current';await persist();render();await updateSiteContext();
  notice(previous?'已载入此房源的原有资料、草稿和联系进度，未覆盖确认过的条件。':'已读取当前房源，请核实主价格与条件后保存。');
@@ -112,3 +112,12 @@ function gallery(h){const raw=h.images?.length?h.images:[{url:h.image_url}];cons
 return `<section class="gallery" aria-label="房源照片"><div class="gallery-track" tabindex="0" aria-label="左右滑动浏览照片">${urls.map((url,i)=>`<figure class="gallery-slide"><span class="photo-placeholder">照片加载失败，请到原网站查看</span><img src="${esc(url)}" alt="${esc(h.title)} · 照片 ${i+1}" ${i?'loading="lazy"':''} referrerpolicy="no-referrer"><figcaption>${i+1} / ${urls.length} · ${esc(h.source||'原平台')} · 图片版权归原权利人</figcaption></figure>`).join('')}</div><div class="gallery-controls"><button type="button" data-gallery="-1" aria-label="上一张照片">← 上一张</button><span>${urls.length>1?'左右滑动或点击切换 · '+urls.length+' 张照片':'原页面仅识别到 1 张照片，可返回原网站查看完整相册'}</span><button type="button" data-gallery="1" aria-label="下一张照片">下一张 →</button></div></section>`}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-gallery]');if(!b)return;const track=b.closest('.gallery').querySelector('.gallery-track');const total=track.children.length;const current=Math.round(track.scrollLeft/track.clientWidth);const next=(current+Number(b.dataset.gallery)+total)%total;track.scrollTo({left:next*track.clientWidth,behavior:'smooth'})});
 document.addEventListener('keydown',e=>{if(!e.target.matches('.gallery-track')||!['ArrowLeft','ArrowRight'].includes(e.key))return;e.preventDefault();const track=e.target;track.scrollBy({left:track.clientWidth*(e.key==='ArrowRight'?1:-1),behavior:'smooth'})});
+
+function mergeCapturedImages(incoming,existing,cover){
+ const images=[],seen=new Set();
+ for(const item of [...(incoming||[]),...(existing||[]),...(cover?[{url:cover,source:'已保存封面'}]:[])]){
+  const value=typeof item==='string'?{url:item,source:'原房源相册'}:item;
+  try{const u=new URL(value.url);if(u.protocol!=='https:'||u.username||u.password)continue;const key=/(^|\.)zoocdn\.com$/.test(u.hostname)?u.pathname.split('/').pop():u.href;if(seen.has(key))continue;seen.add(key);images.push(value);if(images.length===24)break}catch{}
+ }
+ return images;
+}

@@ -75,24 +75,32 @@ function extractListing(doc=document,rawUrl=location.href){
  if(types.some(t=>/^(Apartment|House|Residence|SingleFamilyResidence|Accommodation|RealEstateListing)$/.test(t))&&!listing)listing=value;
  if(value['@graph'])walk(value['@graph']);if(value.mainEntity)walk(value.mainEntity);if(value.about)walk(value.about);}
  for(const script of doc.querySelectorAll('script[type="application/ld+json"]')){try{walk(JSON.parse(script.textContent))}catch{}}
- const imageValue=value=>Array.isArray(value)?imageValue(value[0]):typeof value==='object'&&value?value.url||value.contentUrl: value;
+ const imageValue=value=>Array.isArray(value)?imageValue(value[0]):typeof value==='object'&&value?value.contentUrl||value.url||value.thumbnailUrl: value;
  const meta=doc.querySelector('meta[property="og:image"]')||doc.querySelector('meta[name="twitter:image"]');
  data.image_url=safeImage(imageValue(listing?.image)||meta?.getAttribute('content')||'');
  const images=[];
- const addImage=(value,label)=>{const url=safeImage(value);if(url&&!images.some(x=>x.url===url)&&images.length<24)images.push({url,source:label})};
+ const imageKey=url=>{try{const u=new URL(url);return /(^|\.)zoocdn\.com$/.test(u.hostname)?u.pathname.split('/').pop():u.href}catch{return url}};
+ const addImage=(value,label)=>{const url=safeImage(value);if(url&&!images.some(x=>imageKey(x.url)===imageKey(url))&&images.length<24)images.push({url,source:label})};
  const addStructured=value=>{if(Array.isArray(value))value.forEach(addStructured);else addImage(imageValue(value),'房源页 JSON-LD')};
  // Restrict DOM image discovery to the current listing gallery; never read recommendations or agent logos.
  addStructured(listing?.image);
+ addStructured(listing?.photo);
  if(ctx.site==='rightmove')for(const meta of doc.querySelectorAll('a[itemprop="photo"] meta[itemprop="contentUrl"]'))addImage(meta.getAttribute('content'),'原房源相册元数据');
  const gallerySelectors=ctx.site==='rightmove'?[`a[href*="/properties/${ctx.id}"] img`,'[aria-label="Property image carousel"] img','[data-testid="property-gallery"] img']:['button[aria-label^="Property photo"] img','[aria-label="Gallery images"] img','[data-testid="gallery"] img'];
  for(const node of doc.querySelectorAll(gallerySelectors.join(','))){
   if(/floor.?plan|map|logo|agent|epc/i.test(node.getAttribute('alt')||''))continue;
-  const srcsets=[node.getAttribute('srcset')||'',...[...(node.closest('picture')?.querySelectorAll('source[srcset]')||[])].map(x=>x.getAttribute('srcset')||'')].filter(Boolean).join(',');
+  const picture=node.closest('picture');
+  const sources=[...(picture?.querySelectorAll('source')||[])];
+  const srcsets=[node,...sources].flatMap(e=>['srcset','data-srcset','data-lazy-srcset'].map(k=>e.getAttribute(k)||'')).filter(Boolean).join(',');
   const variants=srcsets.split(',').map(x=>x.trim().split(/\s+/)).filter(x=>x[0]).map(x=>({url:x[0],size:parseFloat(x[1])||0})).sort((a,b)=>b.size-a.size);
-  addImage(node.getAttribute('data-full-src')||node.getAttribute('data-original')||variants[0]?.url||node.currentSrc||node.getAttribute('src'),'原房源相册');
+  const candidates=[node.getAttribute('data-full-src'),node.getAttribute('data-original'),...variants.map(x=>x.url),node.getAttribute('data-src'),node.getAttribute('data-lazy-src'),...sources.flatMap(e=>[e.getAttribute('data-src'),e.getAttribute('src')]),node.currentSrc,node.getAttribute('src')];
+  const chosen=candidates.map(safeImage).find(Boolean);
+  addImage(chosen,'原房源相册（含延迟加载图片）');
  }
  addStructured(listing?.image);
  addImage(data.image_url,'房源页图片元数据');
+ const expected=Math.max(0,...[...doc.querySelectorAll('[aria-label^=\"Property photo\"]')].map(n=>Number((n.getAttribute('aria-label')||'').match(/of (\d+)/)?.[1])||0));
+ if(expected>images.length)warnings.push('原页面标注 '+expected+' 张照片，目前读取 '+images.length+' 张；请打开原网站 Photos 相册，待图片加载后重新读取。');
  data.images=images;data.image_url=images[0]?.url||'';
  data.image_source=data.image_url?(listing?.image?'房源页 JSON-LD':'房源页图片元数据'):'';
  data.image_page_url=ctx.url;
